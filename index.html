@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dress-1-to-3: Single Image to Simulation-Ready 3D Outfit with Diffusion Prior and Differentiable Physics</title>
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
+
+  <link rel="stylesheet" href="./static/css/bootstrap.min.css">
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+  <link rel="stylesheet" href="./static/css/app.css">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="./static/js/fontawesome.all.min.js"></script>
+  <script src="./static/js/bulma-carousel.min.js"></script>
+  <script src="./static/js/bulma-slider.min.js"></script>
+  <script src="./static/js/index.js"></script>
+  <script src="./static/js/video_comparison.js"></script>
+  <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></script>
+
+  <style>
+    .demo-section {
+        padding: 20px;
+        margin: 20px auto;
+        max-width: 1200px;
+    }
+    .demo-section h2 {
+        text-align: center;
+        margin-bottom: 40px;
+        font-size: 2em;
+    }
+    .demo-section h3 {
+        text-align: left;
+        margin-top: 40px;
+        margin-bottom: 0px;
+        font-size: 1.5em;
+        color: #333;
+        border-bottom: 2px solid #ddd;
+        padding-bottom: 5px;
+    }
+    .demo-section h4 {
+        text-align: center;
+        margin-top: 20px;
+        margin-bottom: 10px;
+        font-size: 1.4em;
+        color: #000;
+        padding-bottom: 5px;
+    }
+    .demo-section .row {
+        display: flex;
+        flex-wrap: nowrap; /* Prevent wrapping of rows */
+    }
+    .demo-section .column {
+        flex: 1; /* Equal column width */
+        text-align: center;
+        padding: 10px;
+        overflow: hidden; /* Prevent overflow of tall content */
+    }
+    .video-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        justify-items: center;
+    }
+    .video-item {
+        text-align: center;
+        background: #fff;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        max-width: 300px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .video-item:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+    .video-item h4 {
+        margin-bottom: 10px;
+        font-size: 1.2em;
+        color: #555;
+    }
+    .video-item video {
+        width: 100%;
+        height: auto;
+        border-radius: 4px;
+    }
+  
+    /* Emphasized style for "Ours" */
+    .video-item.emphasized {
+        border: 3px solid #4CAF50; /* Green border */
+        background-color: #e8f5e9; /* Light green background */
+        box-shadow: 0 4px 10px rgba(0, 128, 0, 0.3); /* Stronger shadow */
+        transform: scale(1.05); /* Slight enlargement */
+    }
+    .video-item.emphasized h4 {
+        color: #2e7d32; /* Dark green font */
+        font-weight: bold;
+        font-size: 1.3em;
+    }
+    .video-item.emphasized video {
+        border: 2px solid #4CAF50; /* Green border around video */
+    }
+  </style>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var specificVideo = document.getElementById('pipeline-video');
+
+      specificVideo.addEventListener('ended', function() {
+        specificVideo.pause();
+        specificVideo.currentTime = 0;
+      });
+
+      function togglePlay() {
+        var video = document.getElementById('video');
+        if (video.paused) {
+          video.play();
+        } else {
+          video.pause();
+        }
+      }
+    });
+  </script>
+
+</head>
+
+<body>
+  <section class="hero">
+    <div class="hero-body">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered">
+          <div class="column has-text-centered">
+            <h1 class="title is-3 publication-title">Dress-1-to-3: Single Image to Simulation-Ready 3D Outfit with <br> Diffusion Prior and Differentiable Physics</h1>
+            <div class="is-size-5 publication-authors">
+              <span class="author-block">
+                <a href="https://xuan-li.github.io/">Xuan Li</a><sup>1*</sup>,</span>
+              <span class="author-block">
+                <a href="https://changyu.io/">Chang Yu</a><sup>1*</sup>,
+              </span>
+              <span class="author-block">
+                <a href="https://dwxrycb123.github.io/">Wenxin Du</a><sup>1*</sup>,
+            </span>
+              <span class="author-block">
+                  <a href="https://yingjiang96.github.io/">Ying Jiang</a><sup>1*</sup>,</span>
+              <span class="author-block">
+                <a href="https://xpandora.github.io/">Tianyi Xie</a><sup>1</sup>,</span>
+              <span class="author-block">
+                <a href="https://www.math.ucla.edu/~yunuoch">Yunuo Chen</a><sup>1</sup>,
+              </span>
+              <span class="author-block">
+                <a href="https://yangzzzy.github.io/">Yin Yang</a><sup>2</sup>,
+              </span>
+              <span class="author-block">
+                <a href="https://www.math.ucla.edu/~cffjiang/">Chenfanfu Jiang</a><sup>1</sup>
+              </span>
+            </div>
+
+            <div class="is-size-5 publication-authors">
+              <span class="author-block"><sup>1</sup>University of California, Los Angeles,</span>
+              <span class="author-block"><sup>2</sup>University of Utah</span>
+            </div>
+            
+            <div class="is-size-5 publication-authors">
+              <span class="author-block"><sup>*</sup>Equal Contributions</span>
+            </div>
+
+
+
+            <div class="column has-text-centered">
+              <div class="publication-links">
+                <!-- PDF Link. -->
+                <span class="link-block">
+                  <a href="http://arxiv.org/abs/2502.03449" target="_blank" class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <i class="ai ai-arxiv"></i>
+                    </span>
+                    <span>arXiv</span>
+                  </a>
+                </span>
+                <!-- Code Link. -->
+                <!-- <span class="link-block">
+                  <a
+                    href="#"
+                    class="external-link button is-normal is-rounded is-dark"
+                    onclick="return false;"
+                    style="cursor: not-allowed;"
+                  >
+                    <span class="icon">
+                      <i class="fab fa-github"></i>
+                    </span>
+                    <span>Code (coming soon)</span>
+                  </a>
+                </span> -->
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="hero teaser">
+    <div class="container is-max-desktop">
+      <div class="hero-body" style="max-width: 800px;">
+        <video id="teaser" autoplay muted loop playsinline width="100%">
+          <source src="./static/assets/teaser/teaser_recon.mp4" type="video/mp4">
+        </video>
+        <video id="teaser" autoplay muted loop playsinline width="100%">
+          <source src="./static/assets/teaser/teaser_sim.mp4" type="video/mp4">
+        </video>
+        <h2 class="subtitle has-text-centered">
+          <span class="dnerf">Dress-1-to-3</span> can reconstruct simulation-ready clothed humans from casually posed single view images.
+        </h2>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container is-max-desktop">
+      <!-- Abstract. -->
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <h2 class="title">Abstract</h2>
+          <div class="content has-text-justified">
+            <p>
+              Recent advances in large models have significantly advanced image-to-3D reconstruction. However, the generated models are often fused into a single piece, limiting their applicability in downstream tasks. This paper focuses on 3D garment generation, a key area for applications like virtual try-on with dynamic garment animations, which require garments to be separable and simulation-ready. We introduce <strong>Dress-1-to-3</strong>, a novel pipeline that reconstructs physics-plausible, simulation-ready separated garments with sewing patterns and humans from an in-the-wild image. Starting with the image, our approach combines a pre-trained image-to-sewing pattern generation model for creating coarse sewing patterns with a pre-trained multi-view diffusion model to produce multi-view images. The sewing pattern is further refined using a differentiable garment simulator based on the generated multi-view images. Versatile experiments demonstrate that our optimization approach substantially enhances the geometric alignment of the reconstructed 3D garments and humans with the input image. Furthermore, by integrating a texture generation module and a human motion generation module, we produce customized physics-plausible and realistic dynamic garment demonstrations.
+            </p>
+          </div>
+        </div>
+      </div>
+      <!-- Paper video. -->
+      <!-- <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <div class="publication-video">
+            <iframe src="https://drive.google.com/file/d/13oALN6RuJGcwhVAVQROJbjDmiQQzwFDe/preview"
+                    frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+          </div>
+        </div>
+      </div> -->
+      <!--/ Paper video. -->
+    </div>
+  </section>
+
+  <section class="demo-section">
+    <div class="container is-max-desktop">
+      <h2 class="title">Pipeline</h2>
+      <img src="./static/assets/pipeline.png" class="interpolation-image" />
+      <p>
+        Starting with a single-view input image of a clothed human, we first derive an initial estimation of the sewing pattern. Additionally, we employ multi-view diffusion to generate orbital camera views, which serve as ground-truth 3D information for both human pose and garment shape. Next, we utilize differentiable simulation to sew and drape the pattern onto the posed human model, optimizing its shape and physical parameters in conjunction with geometric regularizers. Finally, the optimized garment shape provides a physically plausible rest shape in its static state and is readily animatable using a physical simulator.
+      </p>
+      <video id="pipeline-video" muted controls style="align-items: center; width: 100%; display: flex;" onclick="togglePlay()">
+        <source src="./static/assets/teaser/pipeline.mp4" type="video/mp4">
+      </video>
+    </div>
+  </section>
+
+  
+  <section class="demo-section" style="max-width:1920px; width:100%; margin-top:50px">
+      <h2 class="title">Reconstruction Demos</h2>
+      
+      <h3 class="title" style="margin-bottom: 10px;">DeepFashion </h3> 
+
+      <div class="row" style="margin-bottom: -20px;">
+        <div class="column">
+        <h4>Input</h4>
+        </div>
+        <div class="column">
+        <h4>Initial Pattern</h4>
+        </div>
+        <div class="column">
+        <h4>Initial Fitting</h4>
+        </div>
+        <div class="column">
+        <h4>Optimized Pattern</h4>
+        </div>
+        <div class="column">
+        <h4>Optimized Fitting</h4>
+        </div>
+        <div class="column">
+        <h4>Texture Generation</h4>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="column"><img src="./static/assets/demo/WOMEN-Blouses_Shirts-id_00000387-02_7_additional/input.png" alt="input"></div>
+        <div class="column"><img src="./static/assets/demo/WOMEN-Blouses_Shirts-id_00000387-02_7_additional/uv_init.png" alt="uv_init"></div>
+        <div class="column"><video autoplay loop muted><source src="./static/assets/demo/WOMEN-Blouses_Shirts-id_00000387-02_7_additional/initial_renderings.mp4" type="video/mp4"></video></div>
+        <div class="column"><img src="./static/assets/demo/WOMEN-Blouses_Shirts-id_00000387-02_7_additional/uv_final.png" alt="uv_final"></div>
+        <div class="column"><video autoplay loop muted><source src="./static/assets/demo/WOMEN-Blouses_Shirts-id_00000387-02_7_additional/final_renderings.mp4" type="video/mp4"></video></div>
+        <div class="column"><img src="./static/assets/demo/WOMEN-Blouses_Shirts-id_00000387-02_7_additional/texture.png" alt="texture"></div>
+      </div>
+
+      <div class="row">
+        <div class="column"><img src="./static/assets/demo/WOMEN-Dresses-id_00000002-02_4_full/input.png" alt="input"></div>
+        <div class="column"><img src="./static/assets/demo/WOMEN-Dresses-id_00000002-02_4_full/uv_init.png" alt="uv_init"></div>
+        <div class="column"><video autoplay loop muted><source src="./static/assets/demo/WOMEN-Dresses-id_00000002-02_4_full/initial_renderings.mp4" type="video/mp4"></video></div>
+        <div class="column"><img src="./static/assets/demo/WOMEN-Dresses-id_00000002-02_4_full/uv_final.png" alt="uv_final"></div>
+        <div class="column"><video autoplay loop muted><source src="./static/assets/demo/WOMEN-Dresses-id_00000002-02_4_full/final_renderings.mp4" type="video/mp4"></video></div>
+        <div class="column"><img src="./static/assets/demo/WOMEN-Dresses-id_00000002-02_4_full/texture.png" alt="texture"></div>
+      </div>
+
+      <div class="row">
+        <div class="column"><img src="./static/assets/demo/image115/input.png" alt="input"></div>
+        <div class="column"><img src="./static/assets/demo/image115/uv_init.png" alt="uv_init"></div>
+        <div class="column"><video autoplay loop muted><source src="./static/assets/demo/image115/initial_renderings.mp4" type="video/mp4"></video></div>
+        <div class="column"><img src="./static/assets/demo/image115/uv_final.png" alt="uv_final"></div>
+        <div class="column"><video autoplay loop muted><source src="./static/assets/demo/image115/final_renderings.mp4" type="video/mp4"></video></div>
+        <div class="column"><img src="./static/assets/demo/image115/texture.png" alt="texture"></div>
+        </div>
+
+
+
+      <h3 class="title" style="margin-bottom: 10px;">DeepFashion2 Customer</h3>
+
+        <div class="row" style="margin-bottom: -20px;">
+        <div class="column">
+        <h4>Input</h4>
+        </div>
+        <div class="column">
+        <h4>Initial Pattern</h4>
+        </div>
+        <div class="column">
+        <h4>Initial Fitting</h4>
+        </div>
+        <div class="column">
+        <h4>Optimized Pattern</h4>
+        </div>
+        <div class="column">
+        <h4>Optimized Fitting</h4>
+        </div>
+        <div class="column">
+        <h4>Texture Generation</h4>
+        </div>
+      </div>
+
+
+        <div class="row">
+          <div class="column"><img src="./static/assets/demo/deepfashion2-customer003013/input.png" alt="input"></div>
+          <div class="column"><img src="./static/assets/demo/deepfashion2-customer003013/uv_init.png" alt="uv_init"></div>
+          <div class="column"><video autoplay loop muted><source src="./static/assets/demo/deepfashion2-customer003013/initial_renderings.mp4" type="video/mp4"></video></div>
+          <div class="column"><img src="./static/assets/demo/deepfashion2-customer003013/uv_final.png" alt="uv_final"></div>
+          <div class="column"><video autoplay loop muted><source src="./static/assets/demo/deepfashion2-customer003013/final_renderings.mp4" type="video/mp4"></video></div>
+          <div class="column"><img src="./static/assets/demo/deepfashion2-customer003013/texture.png" alt="texture"></div>
+          </div>
+
+          <div class="row">
+            <div class="column"><img src="./static/assets/demo/deepfashion2-customer001200/input.png" alt="input"></div>
+            <div class="column"><img src="./static/assets/demo/deepfashion2-customer001200/uv_init.png" alt="uv_init"></div>
+            <div class="column"><video autoplay loop muted><source src="./static/assets/demo/deepfashion2-customer001200/initial_renderings.mp4" type="video/mp4"></video></div>
+            <div class="column"><img src="./static/assets/demo/deepfashion2-customer001200/uv_final.png" alt="uv_final"></div>
+            <div class="column"><video autoplay loop muted><source src="./static/assets/demo/deepfashion2-customer001200/final_renderings.mp4" type="video/mp4"></video></div>
+            <div class="column"><img src="./static/assets/demo/deepfashion2-customer001200/texture.png" alt="texture"></div>
+            </div>
+        
+            <div class="row">
+              <div class="column"><img src="./static/assets/demo/deepfashion2-customer001661/input.png" alt="input"></div>
+              <div class="column"><img src="./static/assets/demo/deepfashion2-customer001661/uv_init.png" alt="uv_init"></div>
+              <div class="column"><video autoplay loop muted><source src="./static/assets/demo/deepfashion2-customer001661/initial_renderings.mp4" type="video/mp4"></video></div>
+              <div class="column"><img src="./static/assets/demo/deepfashion2-customer001661/uv_final.png" alt="uv_final"></div>
+              <div class="column"><video autoplay loop muted><source src="./static/assets/demo/deepfashion2-customer001661/final_renderings.mp4" type="video/mp4"></video></div>
+              <div class="column"><img src="./static/assets/demo/deepfashion2-customer001661/texture.png" alt="texture"></div>
+              </div>
+
+
+      <h3 class="title" style="margin-bottom: 10px;">Flux Generated</h3>
+
+      <div class="row" style="margin-bottom: -20px;">
+        <div class="column">
+        <h4>Input</h4>
+        </div>
+        <div class="column">
+        <h4>Initial Pattern</h4>
+        </div>
+        <div class="column">
+        <h4>Initial Fitting</h4>
+        </div>
+        <div class="column">
+        <h4>Optimized Pattern</h4>
+        </div>
+        <div class="column">
+        <h4>Optimized Fitting</h4>
+        </div>
+        <div class="column">
+        <h4>Texture Generation</h4>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="column"><img src="./static/assets/demo/flux-3-034/input.png" alt="input"></div>
+        <div class="column"><img src="./static/assets/demo/flux-3-034/uv_init.png" alt="uv_init"></div>
+        <div class="column"><video autoplay loop muted><source src="./static/assets/demo/flux-3-034/initial_renderings.mp4" type="video/mp4"></video></div>
+        <div class="column"><img src="./static/assets/demo/flux-3-034/uv_final.png" alt="uv_final"></div>
+        <div class="column"><video autoplay loop muted><source src="./static/assets/demo/flux-3-034/final_renderings.mp4" type="video/mp4"></video></div>
+        <div class="column"><img src="./static/assets/demo/flux-3-034/texture.png" alt="texture"></div>
+        </div>
+
+      <div class="row">
+        <div class="column"><img src="./static/assets/demo/flux-096/input.png" alt="input"></div>
+        <div class="column"><img src="./static/assets/demo/flux-096/uv_init.png" alt="uv_init"></div>
+        <div class="column"><video autoplay loop muted><source src="./static/assets/demo/flux-096/initial_renderings.mp4" type="video/mp4"></video></div>
+        <div class="column"><img src="./static/assets/demo/flux-096/uv_final.png" alt="uv_final"></div>
+        <div class="column"><video autoplay loop muted><source src="./static/assets/demo/flux-096/final_renderings.mp4" type="video/mp4"></video></div>
+        <div class="column"><img src="./static/assets/demo/flux-096/texture.png" alt="texture"></div>
+        </div>
+
+      <div class="row">
+        <div class="column"><img src="./static/assets/demo/flux-3-059/input.png" alt="input"></div>
+        <div class="column"><img src="./static/assets/demo/flux-3-059/uv_init.png" alt="uv_init"></div>
+        <div class="column"><video autoplay loop muted><source src="./static/assets/demo/flux-3-059/initial_renderings.mp4" type="video/mp4"></video></div>
+        <div class="column"><img src="./static/assets/demo/flux-3-059/uv_final.png" alt="uv_final"></div>
+        <div class="column"><video autoplay loop muted><source src="./static/assets/demo/flux-3-059/final_renderings.mp4" type="video/mp4"></video></div>
+        <div class="column"><img src="./static/assets/demo/flux-3-059/texture.png" alt="texture"></div>
+      </div>
+    
+  </section>
+
+  <section class="demo-section" style="max-width:1920px; width:100%; margin-top:50px">
+      <h2 class="title">Simulation Demos</h2>
+
+      <div class="row">
+        <div class="column">
+        <h4>Input</h4>
+        </div>
+        <div class="column">
+        <h4>Simulation</h4>
+        </div>
+        <div class="column">
+        <h4>Input</h4>
+        </div>
+        <div class="column">
+        <h4>Simulation</h4>
+        </div>
+        </div>
+      
+        <div class="row">
+          <div class="column"><img src="./static/assets/demo/MEN-Shirts_Polos-id_00000204-01_7_additional/input.png" alt="input"></div>
+          <div class="column"><video autoplay loop muted><source src="./static/assets/demo/MEN-Shirts_Polos-id_00000204-01_7_additional/MEN-Shirts_Polos-id_00000204-01_7_additional.mp4" type="video/mp4"></video></div>
+          <div class="column"><img src="./static/assets/demo/image209/input.png" alt="input"></div>
+          <div class="column"><video autoplay loop muted><source src="./static/assets/demo/image209/image209.mp4" type="video/mp4"></video></div>
+          </div>
+
+          <div class="row">
+            <div class="column"><img src="./static/assets/demo/flux-pose-3-012/input.png" alt="input"></div>
+            <div class="column"><video autoplay loop muted><source src="./static/assets/demo/flux-pose-3-012/flux-pose-3-012.mp4" type="video/mp4"></video></div>
+            <div class="column"><img src="./static/assets/demo/flux-3-034/input.png" alt="input"></div>
+            <div class="column"><video autoplay loop muted><source src="./static/assets/demo/flux-3-034/flux-3-034.mp4" type="video/mp4"></video></div>
+            </div>
+          
+            <div class="row">
+              <div class="column"><img src="./static/assets/demo/deepfashion2-customer003013/input.png" alt="input"></div>
+              <div class="column"><video autoplay loop muted><source src="./static/assets/demo/deepfashion2-customer003013/deepfashion2-customer003013.mp4" type="video/mp4"></video></div>
+              <div class="column"><img src="./static/assets/demo/deepfashion2-customer002835/input.png" alt="input"></div>
+              <div class="column"><video autoplay loop muted><source src="./static/assets/demo/deepfashion2-customer002835/deepfashion2-customer002835.mp4" type="video/mp4"></video></div>
+            </div>
+          
+
+  </section>
+
+  <section class="demo-section">
+    <div class="container is-max-desktop">
+      <h2 class="title">Comparison</h2>
+      <img src="./static/assets/comparison.png" class="interpolation-image" />
+    </div>
+  </section>
+  
+  <section class="section" id="BibTeX">
+    <div class="container is-max-desktop content">
+      <h2 class="title">BibTeX</h2>
+      <pre><code>@article{li2025dress123,
+      title={Dress-1-to-3: Single Image to Simulation-Ready 3D Outfit with Diffusion Prior and Differentiable Physics}, 
+      Author = {Xuan Li and Chang Yu and Wenxin Du and Ying Jiang and Tianyi Xie and Yunuo Chen and Yin Yang and Chenfanfu Jiang},
+      journal={arXiv preprint arXiv:2502.03449},
+      year={2025}
+}</code></pre>
+    </div>
+  </section>
+
+
+  <footer class="footer">
+    <div class="container">
+      <div class="columns is-centered">
+        <div class="column is-8">
+          <div class="content">
+            <p>
+              This website is licensed under a <a rel="license"
+                href="http://creativecommons.org/licenses/by-sa/4.0/">Creative
+                Commons Attribution-ShareAlike 4.0 International License</a>.
+            </p>
+            <p>
+              The source code of this website is borrowed from <a
+                href="https://github.com/nerfies/nerfies.github.io">nerfies</a>.
+              We thank the authors for sharing the template.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+</body>
+
+</html>
